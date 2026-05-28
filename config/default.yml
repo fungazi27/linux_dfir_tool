@@ -1,19 +1,19 @@
 tool:
   name: "Linux Incident Response Toolkit"
   version: "0.1.0"
-  author "Gabriel Garcia"
+  author: "Gabriel Garcia"
 
 output:
   default_directory: "output"
   formats:
-    - json
-    - csv
-    - html
+    - "json"
+    - "csv"
+    - "html"
 
-logging
+logging:
   level: "INFO"
 
-platform
+platform:
   supported:
-    - ubuntu
-    - debian
+    - "ubuntu"
+    - "debian"
