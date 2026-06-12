@@ -9,6 +9,10 @@ from utils.file_utils import create_case_directory, write_json
 from utils.logger import setup_logger
 from utils.time_utils import utc_now_iso
 
+from collectors.process_collector import collect_processes
+
+from analyzers.process_analyzer import analyze_processes
+
 
 console = Console()
 
@@ -34,7 +38,20 @@ def collect_command(args):
     metadata_path = case_dir / "raw" / "metadata.json"
     write_json(metadata_path, metadata)
 
+    processes = collect_processes()
+    processes_path = case_dir / "raw" / "processes.json"
+    write_json(processes_path, {"processes": processes})
+
     logger.info(f"Metadata written to {metadata_path}")
+    logger.info(f"Collected {len(processes)} running processes")
+    logger.info(f"Process data written to {processes_path}")
+
+    findings = analyze_processes(processes)
+    findings_path = case_dir / "reports" / "findings.json"
+    write_json(findings_path, {"findings": findings})
+
+    logger.info(f"Generated {len(findings)} process findings")
+    logger.info(f"Findings written to {findings_path}")
 
     console.print("[bold green]Collection initialized successfully.[/bold green]")
     console.print(f"Output directory: {case_dir}")
