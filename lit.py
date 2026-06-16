@@ -1,6 +1,5 @@
 import argparse
 import platform
-from pathlib import Path
 
 from rich.console import Console
 
@@ -10,8 +9,10 @@ from utils.logger import setup_logger
 from utils.time_utils import utc_now_iso
 
 from collectors.process_collector import collect_processes
+from collectors.network_collector import collect_network_connections
 
 from analyzers.process_analyzer import analyze_processes
+from analyzers.network_analyzer import analyze_network_connections
 
 
 console = Console()
@@ -21,7 +22,10 @@ def collect_command(args):
     config = load_config()
 
     case_dir = create_case_directory(args.output)
-    logger = setup_logger(case_dir / "logs", config["logging"]["level"])
+    logger = setup_logger(
+        case_dir / "logs", 
+        config["logging"]["level"]
+    )
 
     logger.info("Starting Linux IR collection")
 
@@ -38,24 +42,73 @@ def collect_command(args):
     metadata_path = case_dir / "raw" / "metadata.json"
     write_json(metadata_path, metadata)
 
+    #------------------------------------
+    # Process Collection
+    #------------------------------------
+
     processes = collect_processes()
+
     processes_path = case_dir / "raw" / "processes.json"
-    write_json(processes_path, {"processes": processes})
 
-    logger.info(f"Metadata written to {metadata_path}")
+    write_json(
+        processes_path, 
+        {"processes": processes}
+    )
+    
     logger.info(f"Collected {len(processes)} running processes")
-    logger.info(f"Process data written to {processes_path}")
 
-    findings = analyze_processes(processes)
-    findings_path = case_dir / "reports" / "findings.json"
-    write_json(findings_path, {"findings": findings})
+    #------------------------------------
+    # Network Collection
+    #------------------------------------
 
-    logger.info(f"Generated {len(findings)} process findings")
-    logger.info(f"Findings written to {findings_path}")
+    network_connections = collect_network_connections()
 
-    console.print("[bold green]Collection initialized successfully.[/bold green]")
-    console.print(f"Output directory: {case_dir}")
+    network_path = (
+        case_dir / "raw" / "network_connections.json"
+    )
 
+    write_json(
+        network_path,
+        {"connections": network_connections}
+    )
+
+    logger.info(
+        f"Collected {len(network_connections)} network connections"
+    )
+
+    console.print(
+        "[bold green]Collection initialized successfully.[/bold green]"
+    )
+
+    console.print(
+        f"Output directory: {case_dir}"
+    )
+
+    #---------------------------------------
+    # Analysis
+    #---------------------------------------
+
+    findings = []
+    
+    findings.extend(
+        analyze_network_connections(
+            network_connections,
+            processes
+        )
+    )
+
+    findings_path = (
+        case_dir / "reports" / "findings.json"
+    )
+
+    write_json(
+        findings_path,
+        {"findings": findings}
+    )
+
+    logger.info(
+        f"Generated {len(findings)} total findings"
+    )
 
 def build_parser():
     parser = argparse.ArgumentParser(
