@@ -19,6 +19,27 @@ SUSPICIOUS_COMMAND_PATTERNS = [
     "socat",
 ]
 
+SUSPICIOUS_TOOLS = [
+    "nc",
+    "ncat",
+    "netcat",
+    "socat",
+    "curl",
+    "wget",
+    "python",
+    "python3",
+    "perl",
+    "ruby",
+    "php",
+]
+
+UNUSUAL_ROOT_PATHS = [
+    "/tmp/",
+    "/var/tmp/",
+    "/dev/shm/",
+    "/home/",
+]
+
 def analyze_processes(processes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Analyze process data and return suspicious findings."""
     findings = []
@@ -26,6 +47,9 @@ def analyze_processes(processes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for proc in processes:
         findings.extend(_check_temp_path_execution(proc))
         findings.extend(_check_suspicious_command_patterns(proc))
+        findings.extend(_check_suspicious_tools(proc))
+        findings.extend(_check_shell_network_behavior(proc))
+        findings.extend(_check_root_unusual_path(proc))
 
     return findings
 
@@ -101,5 +125,102 @@ def _check_suspicious_command_patterns(proc: Dict[str, Any]) -> List[Dict[str, A
                     ),
                 }
             )
+
+    return findings
+
+def _check_suspicious_tools(proc: Dict[str, Any]) -> List[Dict[str, Any]]:
+    findings = []
+
+    name = (proc.get("name") or "").lower()
+    cmdline = (proc.get("cmdline") or "").lower()
+
+    for tool in SUSPICIOUS_TOOLS:
+        if name == tool or f" {tool} " in f" {cmdline} ":
+            findings.append(
+                {
+                    "finding_id": "PROC-003",
+                    "title": "Suspicious tool detected in process list",
+                    "severity": "low",
+                    "category": "process",
+                    "mitre_technique": "T1059",
+                    "mitre_tactic": "Execution",
+                    "description": "A process is using a tool commonly abused during post-exploitation.",
+                    "evidence": {
+                        "pid": proc.get("pid"),
+                        "name": proc.get("name"),
+                        "username": proc.get("username"),
+                        "exe": proc.get("exe"),
+                        "cmdline": proc.get("cmdline"),
+                        "matched_tool": tool,
+                    },
+                    "recommendation": "Validate whether this tool usage is expected for this host and user.",
+                }
+            )
+
+    return findings
+
+
+def _check_shell_network_behavior(proc: Dict[str, Any]) -> List[Dict[str, Any]]:
+    findings = []
+
+    cmdline = (proc.get("cmdline") or "").lower()
+
+    shell_indicators = ["bash", "sh", "zsh"]
+    network_indicators = ["/dev/tcp", "nc ", "ncat ", "socat"]
+
+    if any(shell in cmdline for shell in shell_indicators) and any(
+        net in cmdline for net in network_indicators
+    ):
+        findings.append(
+            {
+                "finding_id": "PROC-004",
+                "title": "Shell process with network behavior",
+                "severity": "high",
+                "category": "process",
+                "mitre_technique": "T1059",
+                "mitre_tactic": "Execution",
+                "description": "A shell process appears to include network-related behavior, which may indicate a reverse shell.",
+                "evidence": {
+                    "pid": proc.get("pid"),
+                    "name": proc.get("name"),
+                    "username": proc.get("username"),
+                    "exe": proc.get("exe"),
+                    "cmdline": proc.get("cmdline"),
+                },
+                "recommendation": "Investigate immediately. Review parent process, network connections, and user context.",
+            }
+        )
+
+    return findings
+
+
+def _check_root_unusual_path(proc: Dict[str, Any]) -> List[Dict[str, Any]]:
+    findings = []
+
+    username = proc.get("username") or ""
+    exe = proc.get("exe") or ""
+
+    if username == "root":
+        for path in UNUSUAL_ROOT_PATHS:
+            if exe.startswith(path):
+                findings.append(
+                    {
+                        "finding_id": "PROC-005",
+                        "title": "Root process executing from unusual path",
+                        "severity": "high",
+                        "category": "process",
+                        "mitre_technique": "T1059",
+                        "mitre_tactic": "Execution",
+                        "description": "A root-owned process is executing from a path commonly associated with temporary or user-controlled files.",
+                        "evidence": {
+                            "pid": proc.get("pid"),
+                            "name": proc.get("name"),
+                            "username": proc.get("username"),
+                            "exe": proc.get("exe"),
+                            "cmdline": proc.get("cmdline"),
+                        },
+                        "recommendation": "Review whether the binary is legitimate. Hash the executable and inspect related network activity.",
+                    }
+                )
 
     return findings
