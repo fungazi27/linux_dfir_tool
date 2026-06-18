@@ -15,6 +15,7 @@ from collectors.auth_collector import collect_authentication_data
 
 from analyzers.process_analyzer import analyze_processes
 from analyzers.network_analyzer import analyze_network_connections
+from analyzers.auth_analyzer import analyze_authentication
 
 
 console = Console()
@@ -132,6 +133,12 @@ def collect_command(args):
         analyze_network_connections(
             network_connections,
             processes
+        )
+    )
+
+    findings.extend(
+        analyze_authentication(
+            authentication_data
         )
     )
 
