@@ -128,37 +128,6 @@ def _check_suspicious_command_patterns(proc: Dict[str, Any]) -> List[Dict[str, A
 
     return findings
 
-def _check_suspicious_tools(proc: Dict[str, Any]) -> List[Dict[str, Any]]:
-    findings = []
-
-    name = (proc.get("name") or "").lower()
-    cmdline = (proc.get("cmdline") or "").lower()
-
-    for tool in SUSPICIOUS_TOOLS:
-        if name == tool or f" {tool} " in f" {cmdline} ":
-            findings.append(
-                {
-                    "finding_id": "PROC-003",
-                    "title": "Suspicious tool detected in process list",
-                    "severity": "low",
-                    "category": "process",
-                    "mitre_technique": "T1059",
-                    "mitre_tactic": "Execution",
-                    "description": "A process is using a tool commonly abused during post-exploitation.",
-                    "evidence": {
-                        "pid": proc.get("pid"),
-                        "name": proc.get("name"),
-                        "username": proc.get("username"),
-                        "exe": proc.get("exe"),
-                        "cmdline": proc.get("cmdline"),
-                        "matched_tool": tool,
-                    },
-                    "recommendation": "Validate whether this tool usage is expected for this host and user.",
-                }
-            )
-
-    return findings
-
 
 def _check_shell_network_behavior(proc: Dict[str, Any]) -> List[Dict[str, Any]]:
     findings = []
