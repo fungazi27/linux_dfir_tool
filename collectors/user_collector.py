@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Any, Dict, List
 
-PASSWD_FILE = ("/etc/passwd")
-GROUP_FILE = ("/etc/group")
+PASSWD_FILE = Path("/etc/passwd")
+GROUP_FILE = Path("/etc/group")
 
 LOGIN_SHELLS = {
     "/bin/bash",
