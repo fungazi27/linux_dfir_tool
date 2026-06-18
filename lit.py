@@ -11,6 +11,7 @@ from utils.time_utils import utc_now_iso
 from collectors.process_collector import collect_processes
 from collectors.network_collector import collect_network_connections
 from collectors.user_collector import collect_users
+from collectors.auth_collector import collect_authentication_data
 
 from analyzers.process_analyzer import analyze_processes
 from analyzers.network_analyzer import analyze_network_connections
@@ -103,6 +104,23 @@ def collect_command(args):
     logger.info(
         f"Collected {len(user_data.get('users', []))} local users"
     )
+
+    #---------------------------------------
+    # Authentication Collection
+    #---------------------------------------
+
+    authentication_data = collect_authentication_data()
+
+    authentication_path = (
+        case_dir / "raw" / "authentication.json"
+    )
+
+    write_json(
+        authentication_path,
+        authentication_data
+    )
+
+    logger.info("Collected authentication artifacts")
 
     #---------------------------------------
     # Analysis
