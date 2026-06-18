@@ -10,6 +10,7 @@ from utils.time_utils import utc_now_iso
 
 from collectors.process_collector import collect_processes
 from collectors.network_collector import collect_network_connections
+from collectors.user_collector import collect_users
 
 from analyzers.process_analyzer import analyze_processes
 from analyzers.network_analyzer import analyze_network_connections
@@ -82,6 +83,25 @@ def collect_command(args):
 
     console.print(
         f"Output directory: {case_dir}"
+    )
+
+    #---------------------------------------
+    # User Collection
+    #---------------------------------------
+
+    user_data = collect_users()
+
+    users_path = (
+        case_dir / "raw" / "users.json"
+    )
+
+    write_json(
+        users_path,
+        user_data
+    )
+
+    logger.info(
+        f"Collected {len(user_data.get('users', []))} local users"
     )
 
     #---------------------------------------
