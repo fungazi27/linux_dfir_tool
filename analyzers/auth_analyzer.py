@@ -2,24 +2,41 @@ import re
 from collections import Counter
 from typing import Any, Dict, List
 
-FAILED_LOGIN_THRESHOLD = 5
-SUDO_THRESHOLD = 20
 
-def analyze_authentication(auth_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+def analyze_authentication(auth_data: Dict[str, Any], config: Dict[str, Any],) -> List[Dict[str, Any]]:
     findings = []
 
-    findings.extend(
-        _detect_failed_login_bursts(auth_data)
+    auth_config = (
+        config.get("detections", {}).get("authentication", {})
+    )
+
+    failed_login_threshold = auth_config.get(
+    "failed_login_threshold", 5
+    )
+
+    sudo_threshold = auth_config.get(
+        "sudo_threshold", 20
     )
 
     findings.extend(
-        _detect_excessive_sudo_activity(auth_data)
+        _detect_failed_login_bursts(
+            auth_data,
+            failed_login_threshold
+        )
+    )
+
+    findings.extend(
+        _detect_excessive_sudo_activity(
+            auth_data,
+            sudo_threshold
+        )
     )
 
     return findings
 
 def _detect_failed_login_bursts(
-    auth_data: Dict[str, Any]
+    auth_data: Dict[str, Any],
+    threshold: int,
 ) -> List[Dict[str, Any]]:
 
     findings = []
@@ -46,7 +63,7 @@ def _detect_failed_login_bursts(
 
     for ip, count in failure_counter.items():
 
-        if count >= FAILED_LOGIN_THRESHOLD:
+        if count >= threshold:
 
             findings.append(
                 {
@@ -75,7 +92,8 @@ def _detect_failed_login_bursts(
     return findings
 
 def _detect_excessive_sudo_activity(
-    auth_data: Dict[str, Any]
+    auth_data: Dict[str, Any],
+    threshold: int,
 ) -> List[Dict[str, Any]]:
 
     findings = []
@@ -102,7 +120,7 @@ def _detect_excessive_sudo_activity(
 
     for user, count in sudo_counter.items():
 
-        if count >= SUDO_THRESHOLD:
+        if count >= threshold:
 
             findings.append(
                 {

@@ -138,7 +138,8 @@ def collect_command(args):
 
     findings.extend(
         analyze_authentication(
-            authentication_data
+            authentication_data,
+            config
         )
     )
 

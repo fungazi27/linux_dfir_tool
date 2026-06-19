@@ -17,3 +17,8 @@ platform:
   supported:
     - "ubuntu"
     - "debian"
+
+detections:
+  authentication:
+    failed_login_threshold: 5
+    sudo_threshold: 20
